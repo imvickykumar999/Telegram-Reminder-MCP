@@ -1,10 +1,8 @@
-# Telegram-Reminder-MCP
-
-<img width="1536" height="1024" alt="image" src="https://github.com/user-attachments/assets/763e1d55-5293-4e75-8765-6f61f5908d9a" />
-
-A context-aware, secure, and intuitive Telegram Reminder Bot powered by **FastMCP** and **SQLite3**. Set, view, modify, and delete reminders using simple conversational phrases or standard commands. 
-
----
+># Telegram Reminder MCP
+>
+>![Uploading image.png…](https://github.com/user-attachments/assets/ed942b05-2c2b-4df0-8e79-76a991bc564e)
+>
+>A context-aware, secure, and intuitive Telegram Reminder Bot powered by **FastMCP** and **SQLite3**. Set, view, modify, and delete reminders using simple conversational phrases or standard commands. 
 
 ## 🤖 Live Bot & Web Preview
 *   **Telegram Bot**: [Reminder_MCP_Bot](https://t.me/Reminder_MCP_Bot)
