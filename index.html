@@ -35,12 +35,16 @@
             padding: 0;
         }
 
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
         body {
             background: var(--bg-base-gradient);
             color: var(--color-text-primary);
             font-family: var(--font-body);
             line-height: 1.6;
-            overflow-x: hidden;
             min-height: 100vh;
         }
 
@@ -603,6 +607,8 @@
             overflow-x: auto;
             white-space: nowrap;
             scrollbar-width: none;
+            flex: 1;
+            min-width: 0;
         }
 
         .command-text::-webkit-scrollbar {
@@ -718,7 +724,12 @@
 
         @media (max-width: 768px) {
             .hero-section, .features-section, .playground-section, .roadmap-section {
-                margin-bottom: 60px;
+                margin-bottom: 48px;
+                padding: 0 16px;
+            }
+            .playground-card {
+                padding: 16px;
+                border-radius: 16px;
             }
         }
 
@@ -730,9 +741,12 @@
 
         @media (max-width: 480px) {
             .phone-frame {
-                height: 520px;
+                height: 500px;
                 border-radius: 24px;
                 border-width: 6px;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
             }
             .command-preview-box {
                 flex-direction: column;
