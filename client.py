@@ -129,8 +129,10 @@ async def handle_list(update: Update, chat_id: int) -> None:
                 
             msg = "📋 *Your Active Reminders:*\n\n"
             for rem in reminders:
+                due_display = rem["due_time"]
                 try:
                     due_dt = datetime.strptime(rem["due_time"], "%Y-%m-%d %H:%M:%S")
+                    due_display = due_dt.strftime("%Y-%m-%d %I:%M:%S %p")
                     remaining = due_dt - get_now()
                     if remaining.total_seconds() > 0:
                         mins, secs = divmod(int(remaining.total_seconds()), 60)
@@ -146,7 +148,7 @@ async def handle_list(update: Update, chat_id: int) -> None:
                 except Exception:
                     rem_str = rem["due_time"]
                     
-                msg += f"• *#{rem['id']}*: {rem['text']}\n  _Due: {rem['due_time']}_ ({rem_str})\n\n"
+                msg += f"• *#{rem['id']}*: {rem['text']}\n  _Due: {due_display}_ ({rem_str})\n\n"
                 
             await update.message.reply_text(msg, parse_mode="Markdown")
     except Exception as e:
@@ -212,14 +214,14 @@ async def process_edit(update: Update, chat_id: int, reminder_id: int, arg_text:
         new_text = time_match_1.group(3).strip()
         due = calculate_due_time(duration, unit)
         new_due_str = due.strftime("%Y-%m-%d %H:%M:%S")
-        duration_info = f" at {due.strftime('%H:%M:%S')} (in {duration} {unit})"
+        duration_info = f" at {due.strftime('%I:%M:%S %p')} (in {duration} {unit})"
     elif time_match_2:
         new_text = time_match_2.group(1).strip()
         duration = int(time_match_2.group(2))
         unit = time_match_2.group(3)
         due = calculate_due_time(duration, unit)
         new_due_str = due.strftime("%Y-%m-%d %H:%M:%S")
-        duration_info = f" at {due.strftime('%H:%M:%S')} (in {duration} {unit})"
+        duration_info = f" at {due.strftime('%I:%M:%S %p')} (in {duration} {unit})"
         
     params = {
         "reminder_id": reminder_id,
@@ -279,7 +281,7 @@ async def process_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE,
                 res = json.loads(res_str)
                 if res.get("status") == "success":
                     rem_id = res["reminder"]["id"]
-                    formatted_due = due.strftime("%H:%M:%S on %Y-%m-%d")
+                    formatted_due = due.strftime("%I:%M:%S %p on %Y-%m-%d")
                     await update.message.reply_text(
                         f"✅ Reminder #{rem_id} set for *{action}* at {formatted_due} (in {duration} {unit}).",
                         parse_mode="Markdown"
