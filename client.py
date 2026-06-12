@@ -4,10 +4,17 @@ import json
 import asyncio
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from fastmcp import Client
+
+KOLKATA_TZ = ZoneInfo("Asia/Kolkata")
+
+def get_now() -> datetime:
+    """Get naive datetime representing current time in Kolkata timezone."""
+    return datetime.now(KOLKATA_TZ).replace(tzinfo=None)
 
 # Configure logging
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -37,7 +44,7 @@ LIST_REMINDERS_PATTERN = re.compile(
 
 def calculate_due_time(duration: int, unit: str) -> datetime:
     """Calculate the target datetime based on duration and unit."""
-    now = datetime.now()
+    now = get_now()
     unit = unit.lower()
     if unit.startswith("sec"):
         return now + timedelta(seconds=duration)
@@ -87,7 +94,7 @@ async def handle_list(update: Update, chat_id: int) -> None:
             for rem in reminders:
                 try:
                     due_dt = datetime.strptime(rem["due_time"], "%Y-%m-%d %H:%M:%S")
-                    remaining = due_dt - datetime.now()
+                    remaining = due_dt - get_now()
                     if remaining.total_seconds() > 0:
                         mins, secs = divmod(int(remaining.total_seconds()), 60)
                         hours, mins = divmod(mins, 60)

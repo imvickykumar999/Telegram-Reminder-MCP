@@ -5,7 +5,10 @@ FastMCP Telegram Reminder CRUD Server
 import sqlite3
 import json
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from fastmcp import FastMCP
+
+KOLKATA_TZ = ZoneInfo("Asia/Kolkata")
 
 # Create server
 mcp = FastMCP("Telegram Reminder Server")
@@ -168,7 +171,7 @@ def get_due_reminders() -> str:
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now(KOLKATA_TZ).strftime("%Y-%m-%d %H:%M:%S")
     cursor.execute(
         "SELECT id, chat_id, text, due_time FROM reminders WHERE is_sent = 0 AND due_time <= ?",
         (now_str,)
