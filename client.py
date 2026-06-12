@@ -313,6 +313,10 @@ async def cron_checker(app: Application):
                         logger.info(f"Notification sent and marked as sent for reminder {rem_id}")
                     except Exception as tg_err:
                         logger.error(f"Failed to send telegram notification for reminder {rem_id}: {tg_err}")
+                        from telegram.error import BadRequest, Forbidden
+                        if isinstance(tg_err, (BadRequest, Forbidden)):
+                            logger.info(f"Marking reminder {rem_id} as sent/failed due to fatal telegram error: {tg_err}")
+                            await client.call_tool("mark_as_sent", {"reminder_id": rem_id})
         except Exception as e:
             # MCP server is probably offline, we log this debug/info but keep running
             logger.debug(f"Cron check failed (MCP server might be offline): {e}")
