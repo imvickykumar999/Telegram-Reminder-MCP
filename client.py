@@ -3,6 +3,9 @@ import re
 import json
 import asyncio
 import logging
+import tempfile
+import subprocess
+import speech_recognition as sr
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
@@ -38,9 +41,43 @@ EDIT_REMINDER_PATTERN = re.compile(
 DELETE_REMINDER_PATTERN = re.compile(
     r"(?i)(?:delete\s+reminder|delete|remove\s+reminder|remove)\s+(\d+)"
 )
+
 LIST_REMINDERS_PATTERN = re.compile(
     r"(?i)(?:list\s+reminders|show\s+reminders|list\s+all|list)"
 )
+
+def convert_words_to_digits(text: str) -> str:
+    # We want to replace "a" or "an" when followed by time units case-insensitively
+    text = re.sub(r"\b(a|an)\b\s+(sec|second|min|minute|hour|hr|day)", r"1 \2", text, flags=re.IGNORECASE)
+    
+    ones = {
+        "zero": 0, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5,
+        "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+        "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14,
+        "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18, "nineteen": 19
+    }
+    tens = {
+        "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50,
+        "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90
+    }
+    
+    for ten_word, ten_val in tens.items():
+        for one_word, one_val in ones.items():
+            if one_val > 0:
+                pattern = r"\b" + ten_word + r"[- ]" + one_word + r"\b"
+                text = re.sub(pattern, str(ten_val + one_val), text, flags=re.IGNORECASE)
+                
+    for ten_word, ten_val in tens.items():
+        pattern = r"\b" + ten_word + r"\b"
+        text = re.sub(pattern, str(ten_val), text, flags=re.IGNORECASE)
+        
+    for one_word, one_val in ones.items():
+        pattern = r"\b" + one_word + r"\b"
+        text = re.sub(pattern, str(one_val), text, flags=re.IGNORECASE)
+        
+    return text
+
+
 
 def calculate_due_time(duration: int, unit: str) -> datetime:
     """Calculate the target datetime based on duration and unit."""
@@ -160,6 +197,7 @@ async def edit_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def process_edit(update: Update, chat_id: int, reminder_id: int, arg_text: str) -> None:
     """Process an edit action by checking for text and time modifications."""
+    arg_text = convert_words_to_digits(arg_text)
     # Check if the edit content includes new time duration details
     time_match_1 = REMIND_ME_PATTERN_1.match(f"remind me {arg_text}")
     time_match_2 = REMIND_ME_PATTERN_2.match(f"remind me to {arg_text}")
@@ -207,14 +245,15 @@ async def process_edit(update: Update, chat_id: int, reminder_id: int, arg_text:
         logger.error(f"Error calling edit_reminder: {e}")
         await update.message.reply_text("❌ Error communicating with the Reminder MCP server. Is it running?")
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Handle text chat messages by checking regex rules."""
-    text = update.message.text.strip()
+async def process_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str) -> None:
+    """Process a string command (which could be typed or spoken)."""
+    # Normalize word numbers to digit strings
+    normalized_text = convert_words_to_digits(text)
     chat_id = update.message.chat_id
     
     # 1. Create Reminder Match
-    match1 = REMIND_ME_PATTERN_1.match(text)
-    match2 = REMIND_ME_PATTERN_2.match(text)
+    match1 = REMIND_ME_PATTERN_1.match(normalized_text)
+    match2 = REMIND_ME_PATTERN_2.match(normalized_text)
     
     if match1 or match2:
         if match1:
@@ -253,7 +292,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     # 2. Edit Reminder Match
-    edit_match = EDIT_REMINDER_PATTERN.match(text)
+    edit_match = EDIT_REMINDER_PATTERN.match(normalized_text)
     if edit_match:
         reminder_id = int(edit_match.group(1))
         arg_text = edit_match.group(2).strip()
@@ -261,7 +300,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     # 3. Delete Reminder Match
-    delete_match = DELETE_REMINDER_PATTERN.match(text)
+    delete_match = DELETE_REMINDER_PATTERN.match(normalized_text)
     if delete_match:
         reminder_id = int(delete_match.group(1))
         try:
@@ -282,7 +321,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     # 4. List Reminders Match
-    if LIST_REMINDERS_PATTERN.match(text):
+    if LIST_REMINDERS_PATTERN.match(normalized_text):
         await handle_list(update, chat_id)
         return
 
@@ -295,6 +334,73 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "• `edit reminder <id> to <new text>`\n"
         "• `delete reminder <id>` or `/delete <id>`"
     )
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle text chat messages by checking regex rules."""
+    text = update.message.text.strip()
+    await process_text_input(update, context, text)
+
+async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle voice messages, transcribe them, and process the text."""
+    voice = update.message.voice
+    if not voice:
+        await update.message.reply_text("❌ No voice data found.")
+        return
+
+    # Indicate that the bot is recording/processing
+    await update.message.reply_chat_action("record_voice")
+
+    try:
+        tg_file = await context.bot.get_file(voice.file_id)
+        
+        # Create unique temp files for safety
+        with tempfile.NamedTemporaryFile(suffix=".oga", delete=False) as temp_ogg:
+            ogg_path = temp_ogg.name
+            
+        await tg_file.download_to_drive(ogg_path)
+        wav_path = ogg_path.replace(".oga", ".wav")
+        
+        # Convert OGA to WAV using ffmpeg
+        cmd = ["ffmpeg", "-y", "-i", ogg_path, wav_path]
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        
+        if process.returncode != 0:
+            logger.error(f"ffmpeg conversion failed: {process.stderr.decode()}")
+            await update.message.reply_text("❌ Failed to process the audio file. Please try again.")
+            if os.path.exists(ogg_path):
+                os.remove(ogg_path)
+            return
+
+        recognizer = sr.Recognizer()
+        with sr.AudioFile(wav_path) as source:
+            audio_data = recognizer.record(source)
+            
+        try:
+            transcription = recognizer.recognize_google(audio_data)
+            logger.info(f"Transcription result: {transcription}")
+        except sr.UnknownValueError:
+            await update.message.reply_text("❌ Sorry, I couldn't understand the voice message. Please try speaking clearly or typing.")
+            return
+        except sr.RequestError as e:
+            logger.error(f"Speech recognition service error: {e}")
+            await update.message.reply_text("❌ Error communicating with transcription service. Please try typing.")
+            return
+        finally:
+            # Clean up files
+            if os.path.exists(ogg_path):
+                os.remove(ogg_path)
+            if os.path.exists(wav_path):
+                os.remove(wav_path)
+
+        # Notify user of transcription
+        await update.message.reply_text(f"🎤 *I heard:* \"{transcription}\"", parse_mode="Markdown")
+        
+        # Process the transcription text
+        await process_text_input(update, context, transcription)
+
+    except Exception as e:
+        logger.error(f"Error handling voice message: {e}")
+        await update.message.reply_text("❌ An error occurred while processing your voice message.")
 
 async def cron_checker(app: Application):
     """Cron-like background check polling for due reminders every 5 seconds."""
@@ -345,6 +451,7 @@ async def main():
     application.add_handler(CommandHandler("delete", delete_cmd))
     application.add_handler(CommandHandler("edit", edit_cmd))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.VOICE, handle_voice))
 
     # Initialize and start application
     await application.initialize()
