@@ -223,7 +223,8 @@
         }
 
         .phone-frame {
-            width: 360px;
+            width: 100%;
+            max-width: 360px;
             height: 640px;
             background: #0f172a;
             border: 10px solid #1e293b;
@@ -619,6 +620,7 @@
             font-size: 12px;
             font-weight: 500;
             transition: var(--transition-smooth);
+            flex-shrink: 0;
         }
 
         .copy-btn:hover {
@@ -712,6 +714,34 @@
 
         .footer-copyright {
             margin-top: 12px;
+        }
+
+        @media (max-width: 768px) {
+            .hero-section, .features-section, .playground-section, .roadmap-section {
+                margin-bottom: 60px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .section-header h2 {
+                font-size: 28px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .phone-frame {
+                height: 520px;
+                border-radius: 24px;
+                border-width: 6px;
+            }
+            .command-preview-box {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .copy-btn {
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
