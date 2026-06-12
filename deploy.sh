@@ -51,7 +51,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
     git remote set-url origin "$AUTH_URL"
     
     echo "Pushing changes to origin main..."
-    if git push origin main; then
+    if git push -u origin main; then
         echo "Push successful."
     else
         echo "Error: Push failed."
@@ -64,7 +64,7 @@ if [ -n "$GITHUB_TOKEN" ]; then
 else
     echo "No GITHUB_TOKEN environment variable found."
     echo "Pushing using standard git remote config..."
-    git push origin main
+    git push -u origin main
 fi
 
 echo "Deploy finished successfully!"
