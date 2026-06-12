@@ -1334,8 +1334,8 @@
                 <circle cx="16" cy="10" r="1" fill="currentColor"></circle>
               </svg>
             </div>
-            <h3 class="feature-title">Natural Conversations</h3>
-            <p class="feature-desc">Speak naturally. Say "Remind me in 3 hours to review PR" or "Every Friday at 5 PM to check logs". The parsing engine translates it seamlessly.</p>
+            <h3 class="feature-title">Voice & Text Input</h3>
+            <p class="feature-desc">Speak or type naturally. Send voice notes or conversational text like "remind me in ten minutes to do yoga". The bot transcribes voice and normalizes spoken numbers automatically.</p>
           </div>
 
           <!-- Card 2 -->
@@ -1519,11 +1519,12 @@
   <script>
     // A. Asynchronous Telegram Chat Simulator System
     const scenario = [
-      { type: 'user', text: 'Remind me to call John in 5 minutes to discuss the design system' },
-      { type: 'bot', text: '✅ **Reminder scheduled!**\n\n**Task:** Call John to discuss the design system\n**Time:** In 5 minutes (at {TIME_5M})\n\nI will ping you on Telegram.' },
-      { type: 'system', text: '[System Log] Scheduled task "Call John to discuss the design system" successfully queued.' },
+      { type: 'user', text: '🎤 <em>[Voice Message: 4s]</em>' },
+      { type: 'bot', text: '🎤 **I heard:** "remind me in ten minutes to do yoga"' },
+      { type: 'bot', text: '✅ **Reminder scheduled!**\n\n**Task:** do yoga\n**Time:** In 10 minutes (at {TIME_10M})\n\nI will ping you on Telegram.' },
+      { type: 'system', text: '[System Log] Scheduled task "do yoga" successfully queued.' },
       { type: 'user', text: 'Show all my pending reminders' },
-      { type: 'bot', text: '📂 **Your Active Reminders:**\n\n1. *Call John* — today at {TIME_5M}\n2. *Weekly standup* — tomorrow at 10:00 AM' },
+      { type: 'bot', text: '📂 **Your Active Reminders:**\n\n1. *do yoga* — today at {TIME_10M}\n2. *Weekly standup* — tomorrow at 10:00 AM' },
       { type: 'user', text: 'Cancel the weekly standup reminder' },
       { type: 'bot', text: '🗑️ **Reminder deleted successfully!**\n\nCancelled "Weekly standup" scheduled for tomorrow at 10:00 AM.' }
     ];
@@ -1542,8 +1543,9 @@
 
     // Markdown simple parser & text interpolator
     function formatMessageText(text) {
-      const timeVal = getFutureTime(5);
-      let html = text.replace(/{TIME_5M}/g, timeVal);
+      const timeVal5 = getFutureTime(5);
+      const timeVal10 = getFutureTime(10);
+      let html = text.replace(/{TIME_5M}/g, timeVal5).replace(/{TIME_10M}/g, timeVal10);
       
       // Formatting markdown bold: **text**
       html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');

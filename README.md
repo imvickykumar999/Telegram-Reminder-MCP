@@ -16,6 +16,7 @@
 3.  **Strict Privacy & Multi-User Isolation**: Reminders are strictly isolated using Telegram `chat_id`. A user can **never** view, edit, or delete reminders belonging to another Telegram user.
 4.  **Local Timezone Alignment**: Configured specifically to calculate and store times in the **Asia/Kolkata** (IST) timezone.
 5.  **Robust Cron Engine**: A background worker polls the database every 5 seconds to ensure alerts are dispatched down to the second.
+6.  **Voice Message Support & Normalization**: Send voice notes directly in Telegram to set, list, edit, or delete reminders. Spoken number words (like "five" or "twenty-three") are automatically normalized to digits (like "5" or "23") to integrate seamlessly with the command parser.
 
 ---
 
@@ -33,6 +34,13 @@ You can set reminders using two main sentence structures:
     *   *Example*: `remind me to stretch in 30 seconds`
 
 *Supported Units: `sec`, `second`, `seconds`, `min`, `minute`, `minutes`, `hr`, `hour`, `hours`, `day`, `days`.*
+
+### Voice Message Commands
+You can tap the microphone icon in Telegram to speak any command. Spoken numbers are converted to digits automatically:
+*   *Voice Input*: *"remind me in ten minutes to do yoga"* -> bot normalizes to `"remind me in 10 minutes to do yoga"` and schedules it.
+*   *Voice Input*: *"list reminders"* -> bot transcribes and returns active reminders.
+*   *Voice Input*: *"delete reminder four"* -> bot normalizes to `"delete reminder 4"` and deletes it.
+*   *Voice Input*: *"edit reminder five to walk dog in twenty minutes"* -> bot normalizes to `"edit reminder 5 to walk dog in 20 minutes"` and updates it.
 
 ### Updating a Reminder via Chat
 *   `edit reminder [id] to [new text]` or `edit [id] to [new text]`
